@@ -21,7 +21,7 @@ YTDL_OPTIONS = {
     # Alterna o cliente do YouTube para contornar o bloqueio de Datacenter
     'extractor_args': {
         'youtube': {
-            'player_client': ['android', 'ios' , 'web'],
+            'player_client': ['mweb'],
             'skip': ['hls', 'dash']
         }
     }

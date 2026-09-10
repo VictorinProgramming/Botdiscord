@@ -9,7 +9,7 @@ COOKIE_PATH = "/etc/secrets/cookies.txt" if os.path.exists("/etc/secrets/cookies
 PROXY_URL = os.getenv("PROXY_URL")
 
 YTDL_OPTIONS = {
-    'format': 'bestaudio/bestaudio*/best',
+    'format': 'bestaudio/best',
     'noplaylist': True,
     'nocheckcertificate': True,
     'ignoreerrors': False,
@@ -18,9 +18,11 @@ YTDL_OPTIONS = {
     'no_warnings': True,
     'default_search': 'ytsearch',
     'source_address': '0.0.0.0',
+    # Força os clientes web que respeitam o arquivo de cookies
     'extractor_args': {
         'youtube': {
-            'player_client': ['mweb', 'web']
+            'player_client': ['web', 'mweb'],
+            'skip': ['hls', 'dash']
         }
     }
 }

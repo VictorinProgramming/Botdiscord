@@ -5,6 +5,9 @@ import asyncio
 import os
 
 PROXY_URL = os.getenv("PROXY_URL")
+# Veririca se o arquivo de cookies do Render existe no servidor
+COOKIE_PATH = "/etc/secrets/cookies.txt" if os.path.exists("/etc/secretes/cookies.txt") else "cookies.txt"
+
 
 YTDL_OPTIONS = {
     'format': 'bestaudio/best',
@@ -16,14 +19,16 @@ YTDL_OPTIONS = {
     'no_warnings': True,
     'default_search': 'auto',
     'source_address': '0.0.0.0',
-    'extractor_args':{
-        'youtube': {
-            'player_client': ['ios', 'android']
-        }
-    }
 }
+
+#Adiciona os cookies caso o arquivo esteja presente
+if os.path.exists(COOKIE_PATH)
+    YTDL_OPTIONS['cookiefile'] = COOKIE_PATH
+
 if PROXY_URL:
     YTDL_OPTIONS['proxy'] = PROXY_URL
+
+ytdl = yt_dlp.YoutubeDL(YTDL_OPTIONS)
 
 FFMPEG_OPTIONS = {
     'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',

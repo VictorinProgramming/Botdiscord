@@ -12,9 +12,9 @@ if PROXY_URL:
     os.environ['https_proxy'] = PROXY_URL
 
 
-# 2. Gerador Automático de Cookies (Evita erros de tabulação/quebra de linha no Render)
 def criar_arquivo_cookies():
-    conteudo_cookies = [
+    # Usando o caractere de tabulação real dentro das strings brutas
+    linhas = [
         "# Netscape HTTP Cookie File",
         "# https://curl.haxx.se/rfc/cookie_spec.html",
         "# This is a generated file! Do not edit.",
@@ -32,10 +32,10 @@ def criar_arquivo_cookies():
         ".youtube.com\tTRUE\t/\tTRUE\t1804600279\t__Secure-YNID\t21.YT=ke7NG7-9iragxnKb_ltlqGPUkZNw7MKOxuZibFihI1nCX985Ts5UJfFd-ceAOZ1pvNESw7tGBrI4_2_CIzTW2TtjQtu9s6jPQMagaZA2ZcwzCkaw5MdQaIr559T4pvOiezsbFd4xVw_MG_VYt62iaDb2NSAZEHIqUOk_FYngIf-zO7pbUivwY3E3V6tICtJweL-eCfhX-p9rRjvXnc1K3axGvWDRK6VDid9UxH39BXEYP_km3aCMqv6xH6jVEvBmHpUfWHORgvPmOxOfb_2BxC9iosoCRwJFKM2ylkHbXDwIcl5KkvnEvgtA58_25Mi52N6t08Y_P2HEsJ10eI37FQ",
         ".youtube.com\tTRUE\t/\tTRUE\t1804600279\t__Secure-ROLLOUT_TOKEN\tCPfm5P3F-7-lKBCa0aqYlOSWAxis28CYlOSWAw%3D%3D"
     ]
-
-    with open("cookies.txt", "w", encoding="utf-8") as f:
-        f.write("\n".join(conteudo_cookies) + "\n")
-    print("✅ Arquivo cookies.txt gerado e verificado com sucesso!")
+    
+    with open("cookies.txt", "w", encoding="utf-8", newline="\n") as f:
+        f.write("\n".join(linhas) + "\n")
+    print("✅ Arquivo cookies.txt gerado com tabulações reais!")
 
 
 class NoobAteTentar(commands.Bot):

@@ -16,7 +16,7 @@ YTDL_OPTIONS = {
     'logtostderr': False,
     'quiet': True,
     'no_warnings': True,
-    'default_search': 'ytsearch',
+    #'default_search': 'ytsearch',
     'source_address': '0.0.0.0',
     # Alterna o cliente do YouTube para contornar o bloqueio de Datacenter
     'extractor_args': {

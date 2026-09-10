@@ -5,6 +5,8 @@ import asyncio
 import os
 
 PROXY_URL = os.getenv("PROXY_URL")
+
+
 # Veririca se o arquivo de cookies do Render existe no servidor
 COOKIE_PATH = "/etc/secrets/cookies.txt" if os.path.exists("/etc/secretes/cookies.txt") else "cookies.txt"
 
@@ -24,6 +26,9 @@ YTDL_OPTIONS = {
 #Adiciona os cookies caso o arquivo esteja presente
 if os.path.exists(COOKIE_PATH):
     YTDL_OPTIONS['cookiefile'] = COOKIE_PATH
+    print(f"[MUSICA] Cookies carregados com sucesso de: {COOKIE_PATH}")
+else:
+    print(f"[MUSICA] ATENÇÃO: Arquivo de cookies não encontrado em: {COOKIE_PATH}")
 
 if PROXY_URL:
     YTDL_OPTIONS['proxy'] = PROXY_URL

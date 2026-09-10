@@ -12,18 +12,18 @@ COOKIE_PATH = "/etc/secrets/cookies.txt" if os.path.exists("/etc/secretes/cookie
 
 
 YTDL_OPTIONS = {
-    'format': 'bestaudio/best',
+    'format': 'bestaudio/bestaudio*/best',
     'noplaylist': True,
     'nocheckcertificate': True,
     'ignoreerrors': False,
     'logtostderr': False,
     'quiet': True,
     'no_warnings': True,
-    'default_search': 'auto',
+    'default_search': 'ytsearch',
     'source_address': '0.0.0.0',
     'extractor_args': {
         'youtube':{
-            'player_client': ['ios', 'android', 'mweb']
+            'player_client': ['ios', 'android', 'mweb', 'web']
         }
     }
 }

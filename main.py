@@ -3,23 +3,28 @@ from discord.ext import commands
 import os
 
 # 1. Configuração Global do Proxy Corporativo
-PROXY_URL = "http://u93305:842867%40Beatriz%40@csc-web02.pmjlle.joinville.sc.gov.br:3128"
-os.environ['HTTP_PROXY'] = PROXY_URL
-os.environ['HTTPS_PROXY'] = PROXY_URL
-os.environ['http_proxy'] = PROXY_URL
-os.environ['https_proxy'] = PROXY_URL
+PROXY_URL = os.getenv("PROXY_URL")
+
+if PROXY_URL:
+    os.environ['HTTP_PROXY'] = PROXY_URL
+    os.environ['HTTPS_PROXY'] = PROXY_URL
+    os.environ['http_proxy'] = PROXY_URL
+    os.environ['https_proxy'] = PROXY_URL
 
 
 class NoobAteTentar(commands.Bot):
     def __init__(self):
         intents = discord.Intents.all()
         # 2. Adicionado o parâmetro 'proxy=PROXY_URL' na inicialização do Bot
-        super().__init__(
-            command_prefix="!", 
-            case_insensitive=True, 
-            intents=intents, 
-            proxy=PROXY_URL
-        )
+        kwargs ={
+            "command_prefix": "!",
+            "case_insensitive": True,
+            "intents" : intents
+        }
+        if PROXY_URL:
+            kwargs ["proxy"] = PROXY_URL
+
+        super() .__init__(**kwargs)
 
     async def setup_hook(self):
         # 1. Carrega todas as Views de forma persistente

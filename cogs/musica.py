@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 import yt_dlp
 import asyncio
+import os
 
 PROXY_URL = os.getenv("PROXY_URL")
 

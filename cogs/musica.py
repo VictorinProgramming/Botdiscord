@@ -19,7 +19,7 @@ YTDL_OPTIONS = {
     'source_address': '0.0.0.0',
     'extractor_args': {
         'youtube': {
-            'player_client': ['ios', 'android', 'mweb']
+            'player_client': ['mweb', 'web', 'ios', 'android']
         }
     }
 }

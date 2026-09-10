@@ -3,7 +3,7 @@ from discord.ext import commands
 import yt_dlp
 import asyncio
 
-PROXY_URL = "http://u93305:842867%40Beatriz%40@csc-web02.pmjlle.joinville.sc.gov.br:3128"
+PROXY_URL = os.getenv("PROXY_URL")
 
 YTDL_OPTIONS = {
     'format': 'bestaudio/best',
@@ -15,8 +15,9 @@ YTDL_OPTIONS = {
     'no_warnings': True,
     'default_search': 'auto',
     'source_address': '0.0.0.0',
-    'proxy': PROXY_URL  # <--  esta linha para o yt-dlp usar o proxy
 }
+if PROXY_URL:
+    YTDL_OPTIONS['proxy'] = PROXY_URL
 
 FFMPEG_OPTIONS = {
     'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',

@@ -18,7 +18,7 @@ YTDL_OPTIONS = {
     'no_warnings': True,
     'default_search': 'ytsearch',
     'source_address': '0.0.0.0',
-    # Força os clientes web que respeitam o arquivo de cookies
+    'cookiefile': 'cookies.txt',  # Aponta direto para o arquivo gerado pelo main.py
     'extractor_args': {
         'youtube': {
             'player_client': ['web', 'mweb'],

@@ -1,143 +1,107 @@
 import discord
 from discord.ext import commands
-
-class Dropdown(discord.ui.Select):
-    def __init__(self):
-        options = [
-            discord.SelectOption(value="suporte", label="Suporte", description="Abra um ticket para suporte geral", emoji="🛠️"),
-            discord.SelectOption(value="duvidas", label="Dúvidas", description="Abra um ticket para tirar suas dúvidas", emoji="❓"),
-            discord.SelectOption(value="reclamacoes", label="Reclamações", description="Abra um ticket para fazer uma reclamação", emoji="⚠️"),
-            discord.SelectOption(value="outros", label="Outros", description="Abra um ticket para outros assuntos", emoji="📋"),
-            discord.SelectOption(value="feedback", label="Feedback", description="Abra um ticket para dar feedbacks sobre o servidor", emoji="💬"),
-            discord.SelectOption(value="parcerias", label="Parcerias", description="Abra um ticket para falar sobre parcerias", emoji="🤝"),
-            discord.SelectOption(value="reportar_usuario", label="Reportar Usuário", description="Abra um ticket para reportar um usuário", emoji="🚨"),
-            discord.SelectOption(value="sugestoes", label="Sugestões", description="Abra um ticket para dar sugestões para o servidor", emoji="💡"),
-            discord.SelectOption(value="eventos", label="Eventos", description="Abra um ticket para falar sobre eventos no servidor", emoji="🎉")
-        ]
-        super().__init__(
-            placeholder="Selecione o tipo do seu ticket...", 
-            min_values=1, 
-            max_values=1, 
-            options=options,
-            custom_id="persistent_view:dropdown_help"
-        )
-
-    async def callback(self, interaction: discord.Interaction):
-        tipo_ticket = self.values[0].replace("_", " ").title()
-        guild = interaction.guild
-        user = interaction.user
-
-        await interaction.response.defer(ephemeral=True)
-
-        ID_CATEGORIA_TICKETS = 1509190555203145949
-        categoria = guild.get_channel(ID_CATEGORIA_TICKETS)
-
-        ID_CARGO_SUPORTE = 1508862398101061702 
-        cargo_suporte = guild.get_role(ID_CARGO_SUPORTE)
-
-        overwrites = {
-            guild.default_role: discord.PermissionOverwrite(read_messages=False),
-            user: discord.PermissionOverwrite(read_messages=True, send_messages=True, attach_files=True, embed_links=True)
-        }
-
-        if cargo_suporte:
-            overwrites[cargo_suporte] = discord.PermissionOverwrite(read_messages=True, send_messages=True, attach_files=True, embed_links=True)
-
-        nome_canal = f"🎫-{self.values[0]}-{user.name}"
-        channel = await guild.create_text_channel(name=nome_canal, overwrites=overwrites, category=categoria)
-
-        embed_ticket = discord.Embed(
-            title=f"Atendimento: {tipo_ticket}",
-            description=f"Olá {user.mention},\nBem-vindo ao seu espaço de suporte individual.\n\nDescreva detalhadamente o seu problema ou dúvida para que a nossa equipe possa te auxiliar o mais rápido possível.",
-            color=discord.Color.yellow()
-        )
-        embed_ticket.set_footer(text="Para encerrar este atendimento e salvar os logs, clique no botão abaixo.")
-        
-        await channel.send(content=f"{user.mention} | Atendimento iniciado.", embed=embed_ticket, view=BotaoFecharTicket())
-
-        await guild.fetch_channels()
-        channel_atualizado = guild.get_channel(channel.id)
-        mencao_canal = channel_atualizado.mention if channel_atualizado else f"#{nome_canal}"
-
-        # Envia a resposta temporária e limpa em 5 segundos
-        resposta = await interaction.followup.send(f"✅ Seu ticket de **{tipo_ticket}** foi aberto com sucesso em {mencao_canal}!", ephemeral=True)
-        try:
-            await resposta.delete(delay=5)
-        except:
-            pass
-
-
-class DropdownView(discord.ui.View):
-    def __init__(self):
-        super().__init__(timeout=None)
-        self.add_item(Dropdown())
-
+import asyncio
 
 class BotaoFecharTicket(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
     @discord.ui.button(label="Fechar Ticket", style=discord.ButtonStyle.danger, emoji="🔒", custom_id="btn_fechar_ticket")
-    async def btn_fechar(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer(ephemeral=True)
-
-        guild = interaction.guild
-        channel = interaction.channel
-        
-        ID_CANAL_LOGS = 1509263026015043584
-        canal_logs = guild.get_channel(ID_CANAL_LOGS)
-
-        texto_log = ""
-        async for mensagem in channel.history(limit=200, oldest_first=True):
-            conteudo = mensagem.content if mensagem.content else "[Anexo/Embed sem texto]"
-            texto_log += f"[{mensagem.created_at.strftime('%d/%m/%Y %H:%M')}] {mensagem.author.name}: {conteudo}\n"
-
-        if not texto_log:
-            texto_log = "Nenhuma mensagem enviada pelos usuários neste ticket."
-
-        if len(texto_log) > 950:
-            texto_log = texto_log[:950] + "\n... (Histórico muito longo, cortado para manter a estrutura do Log)"
-
-        if canal_logs:
-            embed_log = discord.Embed(
-                title=f"📋 Log de Ticket Fechado - {channel.name}",
-                color=discord.Color.red(),
-                timestamp=interaction.created_at
-            )
-            embed_log.add_field(name="Ticket deletado por", value=interaction.user.mention, inline=True)
-            embed_log.add_field(name="Canal Original", value=f"`{channel.name}`", inline=True)
-            embed_log.add_field(name="Histórico de Conversa", value=f"```text\n{texto_log}```", inline=False)
-            embed_log.set_footer(text="Noob Até Tentar - Central de Logs", icon_url="https://i.imgur.com/xqojfhk.jpeg")
-
-            await canal_logs.send(embed=embed_log)
-
+    async def fechar_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message("🔒 **Fechando este ticket em 5 segundos...**", ephemeral=False)
+        await asyncio.sleep(5)
         try:
-            await channel.delete(reason=f"Ticket fechado por {interaction.user.name}")
-        except discord.HTTPException:
-            pass
+            await interaction.channel.delete()
+        except Exception as e:
+            print(f"Erro ao deletar canal de ticket: {e}")
+
+
+class TicketSelect(discord.ui.Select):
+    def __init__(self):
+        options = [
+            discord.SelectOption(label="Suporte Técnico", description="Problemas com o bot, site ou ferramentas.", emoji="🛠️", value="suporte"),
+            discord.SelectOption(label="Denúncias", description="Reportar infrações de regras ou usuários mal-intencionados.", emoji="🚨", value="denuncia"),
+            discord.SelectOption(label="Parcerias", description="Propostas de parcerias e divulgações.", emoji="🤝", value="parceria"),
+            discord.SelectOption(label="Financeiro / Doações", description="Dúvidas sobre apoios ou pagamentos.", emoji="💳", value="financeiro")
+        ]
+        super().__init__(placeholder="Selecione o motivo do seu atendimento...", min_values=1, max_values=1, options=options, custom_id="dropdown_tickets")
+
+    async def callback(self, interaction: discord.Interaction):
+        guild = interaction.guild
+        categoria_id = 1507955755125440669  # ID opcional de uma categoria de canais de tickets (ajuste se necessário)
+        categoria = guild.get_channel(categoria_id) if categoria_id else None
+
+        # Configura permissões do canal privado do ticket
+        overwrites = {
+            guild.default_role: discord.PermissionOverwrite(view_channel=False),
+            interaction.user: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
+            guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True, manage_channels=True)
+        }
+
+        # Dá acesso também a cargos de staff/administração se necessário
+        cargo_staff = guild.get_role(1507964006701469749)  # Ex: Cargo de Programador/Staff
+        if cargo_staff:
+            overwrites[cargo_staff] = discord.PermissionOverwrite(view_channel=True, send_messages=True)
+
+        nome_canal = f"ticket-{self.values[0]}-{interaction.user.name}"
+        
+        # Evita duplicidade de canais abertos pelo mesmo usuário com o mesmo tema
+        existing_channel = discord.utils.get(guild.text_channels, name=nome_canal.lower())
+        if existing_channel:
+            return await interaction.response.send_message(f"❌ Você já possui um ticket aberto em {existing_channel.mention}!", ephemeral=True)
+
+        canal_ticket = await guild.create_text_channel(nome_canal, category=categoria, overwrites=overwrites)
+
+        embed = discord.Embed(
+            title=f"🎫 Ticket: {self.values[0].capitalize()}",
+            description=(
+                f"Olá {interaction.user.mention},\n\n"
+                "Sua solicitação foi aberta com sucesso! Nossa equipe foi acionada e responderá em breve.\n\n"
+                "Descreva detalhadamente o seu problema ou dúvida para agilizar o atendimento."
+            ),
+            color=discord.Color.blurple()
+        )
+        embed.set_footer(text="Noob Até Tentar • Sistema de Tickets")
+
+        await canal_ticket.send(content=interaction.user.mention, embed=embed, view=BotaoFecharTicket())
+        await interaction.response.send_message(f"✅ Seu ticket foi criado com sucesso em {canal_ticket.mention}!", ephemeral=True)
+
+
+class DropdownView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        self.add_item(TicketSelect())
 
 
 class TicketsCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.logo_url = "https://i.imgur.com/xqojfhk.jpeg"
+        self.banner_url = "https://i.imgur.com/YZP5zd1.png"
 
-    @commands.command(name="ticket")
+    @commands.command(name="painelticket", aliases=["ticket", "suporte"])
     @commands.has_permissions(administrator=True)
-    async def enviar_painel_ticket(self, ctx):
-        try: await ctx.message.delete()
-        except: pass
+    async def painelticket(self, ctx):
+        try:
+            await ctx.message.delete()
+        except Exception:
+            pass
 
-        embed_painel = discord.Embed(
-            title="🎫 Central de Atendimento - Noob Até Tentar",
-            description="Precisa de ajuda ou quer falar com a nossa administração?\n\nSelecione a categoria correspondente à sua necessidade no menu dropdown abaixo para abrir um canal privado de atendimento.",
-            color=discord.Color.gold()
+        embed = discord.Embed(
+            title="🎟️ Central de Atendimento - Noob Até Tentar",
+            description=(
+                "Precisa de ajuda, quer relatar um problema ou propor uma parceria?\n\n"
+                "👇 **Selecione a categoria desejada no menu abaixo para abrir um canal privado com a nossa equipe:**"
+            ),
+            color=discord.Color.green()
         )
-        embed_painel.set_author(name="Suporte Técnico", icon_url="https://i.imgur.com/xqojfhk.jpeg")
-        embed_painel.set_thumbnail(url="https://i.imgur.com/xqojfhk.jpeg")
-        embed_painel.set_image(url="https://i.imgur.com/YZP5zd1.png")
-        embed_painel.set_footer(text="Sistema de Suporte Automático", icon_url="https://i.imgur.com/xqojfhk.jpeg")
+        embed.set_author(name="Administrador", icon_url=self.logo_url)
+        embed.set_thumbnail(url=self.logo_url)
+        embed.set_image(url=self.banner_url)
+        embed.set_footer(text="Noob Até Tentar", icon_url=self.logo_url)
 
-        await ctx.send(embed=embed_painel, view=DropdownView())
+        await ctx.send(embed=embed, view=DropdownView())
+
 
 async def setup(bot):
     await bot.add_cog(TicketsCog(bot))

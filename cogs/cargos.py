@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 
+
 class BotoesCargos(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
@@ -64,7 +65,6 @@ class CargosCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_update(self, before: discord.Member, after: discord.Member):
-        """Disparado quando o membro aceita as regras/conclui a triagem do servidor"""
         if before.pending and not after.pending:
             ID_CANAL_BOAS_VINDAS = 1507955755125440665
             ID_CANAL_CARGOS = 1508800415649501275
@@ -130,14 +130,15 @@ class CargosCog(commands.Cog):
     @commands.command(name="addcargo")
     @commands.has_permissions(manage_roles=True)
     async def addcargo(self, ctx, user: discord.Member, cargo: discord.Role):
-        try: await ctx.message.delete()
-        except: pass
+        try:
+            await ctx.message.delete()
+        except Exception:
+            pass
 
         if cargo in user.roles:
             await ctx.send(f"❌ O usuário {user.mention} já possui o cargo {cargo.mention}.", delete_after=10)
             return  
 
-        # Proteção contra erros de hierarquia (403 Forbidden)
         try:
             await user.add_roles(cargo)
         except discord.Forbidden:
@@ -166,14 +167,15 @@ class CargosCog(commands.Cog):
     @commands.command(name="remcargo")
     @commands.has_permissions(manage_roles=True)
     async def remcargo(self, ctx, user: discord.Member, cargo: discord.Role):
-        try: await ctx.message.delete()
-        except: pass
+        try:
+            await ctx.message.delete()
+        except Exception:
+            pass
 
         if cargo not in user.roles:
             await ctx.send(f"❌ O usuário {user.mention} não possui o cargo {cargo.mention} para ser removido.", delete_after=10)
             return  
 
-        # Proteção contra erros de hierarquia (403 Forbidden)
         try:
             await user.remove_roles(cargo)
         except discord.Forbidden:
@@ -198,6 +200,7 @@ class CargosCog(commands.Cog):
             embed.set_thumbnail(url=self.logo_admin_url)
 
         await ctx.send(embed=embed, delete_after=15)
+
 
 async def setup(bot):
     await bot.add_cog(CargosCog(bot))

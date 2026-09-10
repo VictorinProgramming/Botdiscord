@@ -15,16 +15,15 @@ if PROXY_URL:
 class NoobAteTentar(commands.Bot):
     def __init__(self):
         intents = discord.Intents.all()
-        # 2. Adicionado o parâmetro 'proxy=PROXY_URL' na inicialização do Bot
-        kwargs ={
+        kwargs = {
             "command_prefix": "!",
             "case_insensitive": True,
-            "intents" : intents
+            "intents": intents
         }
         if PROXY_URL:
-            kwargs ["proxy"] = PROXY_URL
+            kwargs["proxy"] = PROXY_URL
 
-        super() .__init__(**kwargs)
+        super().__init__(**kwargs)
 
     async def setup_hook(self):
         # 1. Carrega todas as Views de forma persistente
@@ -53,8 +52,6 @@ bot = NoobAteTentar()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 if not TOKEN:
-    raise ValueError("O Tolen 'DISCORD_TOKEN' não foi configurado nas variáveis de ambiente!")
+    raise ValueError("O Token 'DISCORD_TOKEN' não foi configurado nas variáveis de ambiente!")
 
-# Executa o bot com o seu Token original corrigido
 bot.run(TOKEN)
-

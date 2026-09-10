@@ -1,3 +1,4 @@
+import os
 import discord
 from discord.ext import commands
 import sqlite3
@@ -12,26 +13,23 @@ class SegurancaCog(commands.Cog):
         self.logo_url = "https://i.imgur.com/xqojfhk.jpeg"
         self.banner_url = "https://i.imgur.com/YZP5zd1.png"
         
-        # --- Lista de Canais Permitidos para o comando !infoid ---
         self.CANAIS_PERMITIDOS = [
             1508871694083690629, # Canal do Dono
             1509265359956348958, # Audit Log
             1509265262850080849  # Member Logs
         ]
 
-        # Configurações de Rede para o validador de IP
-        self.REDIRECT_URI = "http://localhost:5000/callback"
+        # Lê a URL pública do Render.com se disponível, senão assume localhost para testes
+        base_url = os.getenv("RENDER_EXTERNAL_URL", "http://localhost:5000")
+        self.REDIRECT_URI = f"{base_url}/callback"
         
-        # Conecta ao banco de dados SQLite
         self.conn = sqlite3.connect("niveis.db")
         self.cursor = self.conn.cursor()
         self.criar_tabelas()
         
-        # Inicia o servidor Web em segundo plano junto com o bot
         self.bot.loop.create_task(self.iniciar_servidor_web())
 
     def criar_tabelas(self):
-        """Cria a tabela de segurança no banco se não existir"""
         self.cursor.execute("""
             CREATE TABLE IF NOT EXISTS verificacoes (
                 user_id INTEGER PRIMARY KEY,
@@ -43,7 +41,6 @@ class SegurancaCog(commands.Cog):
         self.conn.commit()
 
     def criar_embed_padrao(self, titulo, descricao, cor=discord.Color.blurple()):
-        """Gera o Embed no padrão visual oficial Noob Até Tentar"""
         embed = discord.Embed(title=titulo, description=descricao, color=cor)
         embed.set_author(name="Segurança Extrema", icon_url=self.logo_url)
         embed.set_thumbnail(url=self.logo_url)
@@ -51,20 +48,22 @@ class SegurancaCog(commands.Cog):
         embed.set_footer(text="Noob Até Tentar", icon_url=self.logo_url)
         return embed
 
-    # ==============================================================================
-    # SERVIDOR WEB INTEGRADO (Captura o IP e envia para os canais de Log)
-    # ==============================================================================
     async def iniciar_servidor_web(self):
         app = web.Application()
         app.router.add_get('/callback', self.handle_callback)
         runner = web.AppRunner(app)
         await runner.setup()
-        site = web.TCPSite(runner, '0.0.0.0', 5000)
+        
+        port = int(os.getenv("PORT", 5000))
+        site = web.TCPSite(runner, '0.0.0.0', port)
         await site.start()
-        print("🌐 Servidor de captura de IP rodando na porta 5000!")
+        print(f"🌐 Servidor de captura de IP rodando na porta {port}!")
 
     async def handle_callback(self, request):
         ip_cliente = request.headers.get('X-Forwarded-For', request.remote_addr)
+        if ip_cliente and ',' in ip_cliente:
+            ip_cliente = ip_cliente.split(',')[0].strip()
+
         user_id = request.query.get('id')
         username = request.query.get('user', 'Desconhecido')
 
@@ -90,7 +89,6 @@ class SegurancaCog(commands.Cog):
             discord.Color.red() if alts else discord.Color.green()
         )
 
-        # Envia os logs automáticos de IP para os canais de log configurados
         for canal_id in [1509265262850080849, 1509265359956348958]:
             canal = self.bot.get_channel(canal_id)
             if canal:
@@ -101,18 +99,14 @@ class SegurancaCog(commands.Cog):
 
         return web.Response(text="✅ Verificação Concluída com Sucesso! Pode fechar esta aba e voltar ao Discord.", content_type='text/html', charset='utf-8')
 
-    # ==============================================================================
-    # COMANDO PÚBLICO: !verificar
-    # ==============================================================================
     @commands.command(name="verificar")
     async def verificar(self, ctx):
-        """Envia o link de validação de IP na DM do usuário"""
         try:
             await ctx.message.delete()
-        except:
+        except Exception:
             pass
 
-        link_verificacao = f"http://localhost:5000/callback?id={ctx.author.id}&user={ctx.author.name}"
+        link_verificacao = f"{self.REDIRECT_URI}?id={ctx.author.id}&user={ctx.author.name}"
 
         embed = self.criar_embed_padrao(
             "🔒 Verificação de Segurança",
@@ -125,19 +119,14 @@ class SegurancaCog(commands.Cog):
         except discord.Forbidden:
             await ctx.send(f"❌ {ctx.author.mention}, preciso que abra suas mensagens diretas (DM) para receber o link!", delete_after=10)
 
-    # ==============================================================================
-    # COMANDO SEGURANÇA: !infoid <@Membro ou ID> (Permitido em 3 canais de Staff)
-    # ==============================================================================
     @commands.command(name="infoid", aliases=["userinfo", "dossie"])
     async def infoid(self, ctx, membro: discord.Member = None):
-        """Puxa o dossiê avançado com todos os dados de um usuário do Discord"""
-        # Modificação crítica: O comando agora verifica se o canal atual está dentro da lista permitida
         if ctx.channel.id not in self.CANAIS_PERMITIDOS:
             return 
 
         try:
             await ctx.message.delete()
-        except:
+        except Exception:
             pass
 
         membro = membro or ctx.author
@@ -184,9 +173,10 @@ class SegurancaCog(commands.Cog):
             embed_dossie.set_thumbnail(url=membro.avatar.url)
         
         embed_dossie.set_image(url=self.banner_url)
-        embed_dossie.set_footer(text=f"Noob Até Tentar • Logs do Dono", icon_url=self.logo_url)
+        embed_dossie.set_footer(text="Noob Até Tentar • Logs do Dono", icon_url=self.logo_url)
 
         await ctx.send(embed=embed_dossie)
+
 
 async def setup(bot):
     await bot.add_cog(SegurancaCog(bot))

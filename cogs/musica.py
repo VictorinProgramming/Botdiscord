@@ -8,7 +8,7 @@ PROXY_URL = os.getenv("PROXY_URL")
 
 
 # Veririca se o arquivo de cookies do Render existe no servidor
-COOKIE_PATH = "/etc/secrets/cookies.txt" if os.path.exists("/etc/secretes/cookies.txt") else "cookies.txt"
+COOKIE_PATH = "/etc/secrets/cookies.txt" if os.path.exists("/etc/secretss/cookies.txt") else "cookies.txt"
 
 
 YTDL_OPTIONS = {
@@ -45,7 +45,6 @@ FFMPEG_OPTIONS = {
     'options': '-vn'
 }
 
-ytdl = yt_dlp.YoutubeDL(YTDL_OPTIONS)
 
 # ==============================================================================
 # VIEW DE CONTROLE DE MÚSICA (BOTÕES PERSISTENTES)

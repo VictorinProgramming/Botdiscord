@@ -1,15 +1,11 @@
+import os
+import asyncio
 import discord
 from discord.ext import commands
 import yt_dlp
-import asyncio
-import os
 
-PROXY_URL = os.getenv("PROXY_URL")
-
-
-# Veririca se o arquivo de cookies do Render existe no servidor
-COOKIE_PATH = "/etc/secrets/cookies.txt" if os.path.exists("/etc/secretss/cookies.txt") else "cookies.txt"
-
+# Carrega o Refresh Token salvo no Render (se configurado)
+YOUTUBE_REFRESH_TOKEN = os.getenv("YOUTUBE_REFRESH_TOKEN")
 
 YTDL_OPTIONS = {
     'format': 'bestaudio/bestaudio*/best',
@@ -17,26 +13,24 @@ YTDL_OPTIONS = {
     'nocheckcertificate': True,
     'ignoreerrors': False,
     'logtostderr': False,
-    'quiet': True,
+    'quiet': False,  # Mantido False para exibir o link/código de autenticação OAuth2 nos logs do Render
     'no_warnings': True,
     'default_search': 'ytsearch',
     'source_address': '0.0.0.0',
+    # Ativa autenticação OAuth2 nativa sem necessidade de cookies manuais
+    'username': 'oauth2',
+    'password': '',
     'extractor_args': {
-        'youtube':{
-            'player_client': ['ios', 'android', 'mweb', 'web']
+        'youtube': {
+            'player_client': ['tv', 'mweb'],
+            'skip': ['webpage', 'configs']
         }
     }
 }
 
-#Adiciona os cookies caso o arquivo esteja presente
-if os.path.exists(COOKIE_PATH):
-    YTDL_OPTIONS['cookiefile'] = COOKIE_PATH
-    print(f"[MUSICA] Cookies carregados com sucesso de: {COOKIE_PATH}")
-else:
-    print(f"[MUSICA] ATENÇÃO: Arquivo de cookies não encontrado em: {COOKIE_PATH}")
-
-if PROXY_URL:
-    YTDL_OPTIONS['proxy'] = PROXY_URL
+# Se o token já existir nas variáveis de ambiente, injeta diretamente no yt-dlp
+if YOUTUBE_REFRESH_TOKEN:
+    YTDL_OPTIONS['extractor_args']['youtube']['oauth2_token'] = YOUTUBE_REFRESH_TOKEN
 
 ytdl = yt_dlp.YoutubeDL(YTDL_OPTIONS)
 
@@ -49,6 +43,7 @@ FFMPEG_OPTIONS = {
 # ==============================================================================
 # VIEW DE CONTROLE DE MÚSICA (BOTÕES PERSISTENTES)
 # ==============================================================================
+
 class MusicControlView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
@@ -68,19 +63,19 @@ class MusicControlView(discord.ui.View):
         else:
             await interaction.response.send_message("ℹ️ Nenhuma música tocando no momento.", ephemeral=True)
 
-    @discord.ui.button(label="Pular", style=discord.ButtonStyle.gray, emoji="⏭️", custom_id="btn_skip")
+    @discord.ui.button(label="Pular", style=discord.ButtonStyle.gray, emoji="⏩", custom_id="btn_skip")
     async def skip(self, interaction: discord.Interaction, button: discord.ui.Button):
         vc = interaction.guild.voice_client
         if vc and vc.is_playing():
             vc.stop()
-            await interaction.response.send_message("⏭️ Música pulada!", ephemeral=True)
+            await interaction.response.send_message("⏩ Música pulada!", ephemeral=True)
         else:
             await interaction.response.send_message("❌ Não há nada tocando para pular.", ephemeral=True)
 
     @discord.ui.button(label="Parar", style=discord.ButtonStyle.danger, emoji="⏹️", custom_id="btn_stop")
     async def stop(self, interaction: discord.Interaction, button: discord.ui.Button):
         vc = interaction.guild.voice_client
-        
+
         # 1. Primeiro lida com a desconexão do canal de voz, se houver
         if vc:
             vc.stop()
@@ -100,9 +95,11 @@ class MusicControlView(discord.ui.View):
         # Envia uma confirmação silenciosa (só para quem clicou ver) de que deu certo
         await interaction.response.send_message("⏹️ Player encerrado e painel removido com sucesso!", ephemeral=True)
 
+
 # ==============================================================================
 # COG DE MÚSICA
 # ==============================================================================
+
 class MusicaCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -123,7 +120,7 @@ class MusicaCog(commands.Cog):
         """Toca uma música e envia o painel de controle"""
         try:
             await ctx.message.delete()
-        except:
+        except Exception:
             pass
 
         if not ctx.author.voice:
@@ -145,13 +142,14 @@ class MusicaCog(commands.Cog):
         loop = asyncio.get_event_loop()
         try:
             data = await loop.run_in_executor(None, lambda: ytdl.extract_info(busca, download=False))
-            if 'entries' in data: data = data['entries'][0]
+            if 'entries' in data:
+                data = data['entries'][0]
         except Exception as e:
             return await msg_carregando.edit(content=f"❌ Erro ao buscar música: `{e}`")
 
         url_audio = data['url']
         titulo_musica = data['title']
-        
+
         # Reprodução
         player = discord.FFmpegPCMAudio(url_audio, **FFMPEG_OPTIONS)
         ctx.voice_client.play(player)
@@ -161,7 +159,8 @@ class MusicaCog(commands.Cog):
             "🎵 Tocando Agora",
             f"**Música:** [{titulo_musica}]({data.get('webpage_url', '')})\n**Pedido por:** {ctx.author.mention}"
         )
-        if 'thumbnail' in data: embed_play.set_thumbnail(url=data['thumbnail'])
+        if 'thumbnail' in data:
+            embed_play.set_thumbnail(url=data['thumbnail'])
 
         await msg_carregando.delete()
         await ctx.send(embed=embed_play, view=MusicControlView())
@@ -173,14 +172,14 @@ class MusicaCog(commands.Cog):
             # Envia a resposta visual padronizada no servidor para comandos incompletos
             embed_erro = self.criar_embed_padrao(
                 "⚠️ Comando Incompleto",
-                "Você esqueceu de dizer qual música ou link quer tocar!\n\n**Uso Correto:**\n`!play Nome da Música` ou `!play LinkDoYouTube` Setup",
+                "Você esqueceu de dizer qual música ou link quer tocar!\n\n**Uso Correto:**\n`!play Nome da Música` ou `!play LinkDoYouTube`",
                 discord.Color.orange()
             )
             await ctx.send(embed=embed_erro, delete_after=10)
-            
+
             try:
                 await ctx.message.delete()
-            except:
+            except Exception:
                 pass
 
     @commands.command(name="leave")
@@ -188,13 +187,14 @@ class MusicaCog(commands.Cog):
         """Desconecta o bot manualmente"""
         try:
             await ctx.message.delete()
-        except:
+        except Exception:
             pass
 
         if ctx.voice_client:
             await ctx.voice_client.disconnect()
             embed = self.criar_embed_padrao("Desconectado", "👋 Saí do canal de voz.")
             await ctx.send(embed=embed, delete_after=10)
+
 
 async def setup(bot):
     await bot.add_cog(MusicaCog(bot))

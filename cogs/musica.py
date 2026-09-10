@@ -18,10 +18,10 @@ YTDL_OPTIONS = {
     'no_warnings': True,
     'default_search': 'ytsearch',
     'source_address': '0.0.0.0',
-    'cookiefile': 'cookies.txt',  # Aponta direto para o arquivo gerado pelo main.py
+    # Alterna o cliente do YouTube para contornar o bloqueio de Datacenter
     'extractor_args': {
         'youtube': {
-            'player_client': ['web', 'mweb'],
+            'player_client': ['android', 'ios' , 'web'],
             'skip': ['hls', 'dash']
         }
     }

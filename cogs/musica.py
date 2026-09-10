@@ -4,8 +4,8 @@ import discord
 from discord.ext import commands
 import yt_dlp
 
-# Carrega o Refresh Token salvo no Render (se configurado)
-YOUTUBE_REFRESH_TOKEN = os.getenv("YOUTUBE_REFRESH_TOKEN")
+# Definindo caminho dos cookies (no Render ou local)
+COOKIE_PATH = "/etc/secrets/cookies.txt" if os.path.exists("/etc/secrets/cookies.txt") else "cookies.txt"
 
 YTDL_OPTIONS = {
     'format': 'bestaudio/bestaudio*/best',
@@ -13,24 +13,20 @@ YTDL_OPTIONS = {
     'nocheckcertificate': True,
     'ignoreerrors': False,
     'logtostderr': False,
-    'quiet': False,  # Mantido False para exibir o link/código de autenticação OAuth2 nos logs do Render
+    'quiet': True,
     'no_warnings': True,
     'default_search': 'ytsearch',
     'source_address': '0.0.0.0',
-    # Ativa autenticação OAuth2 nativa sem necessidade de cookies manuais
-    'username': 'oauth2',
-    'password': '',
     'extractor_args': {
         'youtube': {
-            'player_client': ['tv', 'mweb'],
-            'skip': ['webpage', 'configs']
+            'player_client': ['ios', 'android', 'mweb']
         }
     }
 }
 
-# Se o token já existir nas variáveis de ambiente, injeta diretamente no yt-dlp
-if YOUTUBE_REFRESH_TOKEN:
-    YTDL_OPTIONS['extractor_args']['youtube']['oauth2_token'] = YOUTUBE_REFRESH_TOKEN
+# Injeta os cookies se o arquivo existir no servidor
+if os.path.exists(COOKIE_PATH):
+    YTDL_OPTIONS['cookiefile'] = COOKIE_PATH
 
 ytdl = yt_dlp.YoutubeDL(YTDL_OPTIONS)
 
@@ -85,14 +81,11 @@ class MusicControlView(discord.ui.View):
         try:
             await interaction.message.delete()
         except discord.NotFound:
-            # Caso a mensagem já tenha sido deletada por outro motivo
             pass
         except discord.Forbidden:
-            # Caso o bot não tenha permissão de gerenciar mensagens no canal
             await interaction.response.send_message("⏹️ Player encerrado, mas não tenho permissão para apagar a mensagem.", ephemeral=True)
             return
 
-        # Envia uma confirmação silenciosa (só para quem clicou ver) de que deu certo
         await interaction.response.send_message("⏹️ Player encerrado e painel removido com sucesso!", ephemeral=True)
 
 
@@ -139,7 +132,7 @@ class MusicaCog(commands.Cog):
         msg_carregando = await ctx.send("🔍 **Buscando e processando áudio...**")
 
         # Extração do áudio
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         try:
             data = await loop.run_in_executor(None, lambda: ytdl.extract_info(busca, download=False))
             if 'entries' in data:
@@ -169,7 +162,6 @@ class MusicaCog(commands.Cog):
     async def play_error(self, ctx, error):
         """Captura erros cometidos ao executar o comando !play"""
         if isinstance(error, commands.MissingRequiredArgument):
-            # Envia a resposta visual padronizada no servidor para comandos incompletos
             embed_erro = self.criar_embed_padrao(
                 "⚠️ Comando Incompleto",
                 "Você esqueceu de dizer qual música ou link quer tocar!\n\n**Uso Correto:**\n`!play Nome da Música` ou `!play LinkDoYouTube`",

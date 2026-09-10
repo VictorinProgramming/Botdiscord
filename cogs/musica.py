@@ -4,8 +4,7 @@ import discord
 from discord.ext import commands
 import yt_dlp
 
-# Detecta automaticamente se está no Render (/etc/secrets/cookies.txt) ou ambiente local
-COOKIE_PATH = "/etc/secrets/cookies.txt" if os.path.exists("/etc/secrets/cookies.txt") else "cookies.txt"
+COOKIE_PATH = "cookies.txt"
 PROXY_URL = os.getenv("PROXY_URL")
 
 YTDL_OPTIONS = {
@@ -16,12 +15,12 @@ YTDL_OPTIONS = {
     'logtostderr': False,
     'quiet': True,
     'no_warnings': True,
-    #'default_search': 'ytsearch',
+    'default_search': 'auto',
     'source_address': '0.0.0.0',
-    # Alterna o cliente do YouTube para contornar o bloqueio de Datacenter
+    'cookiefile': COOKIE_PATH,
     'extractor_args': {
         'youtube': {
-            'player_client': ['mweb'],
+            'player_client': ['web_safari', 'mweb'],
             'skip': ['hls', 'dash']
         }
     }
@@ -29,9 +28,6 @@ YTDL_OPTIONS = {
 
 if PROXY_URL:
     YTDL_OPTIONS['proxy'] = PROXY_URL
-
-if os.path.exists(COOKIE_PATH):
-    YTDL_OPTIONS['cookiefile'] = COOKIE_PATH
 
 ytdl = yt_dlp.YoutubeDL(YTDL_OPTIONS)
 
@@ -121,7 +117,11 @@ class MusicaCog(commands.Cog):
         msg_carregando = await ctx.send("🔍 **Buscando e processando áudio...**")
 
         loop = asyncio.get_running_loop()
-        query = busca if busca.startswith(('http://', 'https://')) else f"ytsearch:{busca}"
+
+        if busca.startswith(('http://', 'https://')):
+            query = busca
+        else:
+            query = f"ytsearch1:{busca}"
 
         try:
             data = await loop.run_in_executor(None, lambda: ytdl.extract_info(query, download=False))

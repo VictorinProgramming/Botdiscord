@@ -22,7 +22,7 @@ YTDL_OPTIONS = {
 }
 
 #Adiciona os cookies caso o arquivo esteja presente
-if os.path.exists(COOKIE_PATH)
+if os.path.exists(COOKIE_PATH):
     YTDL_OPTIONS['cookiefile'] = COOKIE_PATH
 
 if PROXY_URL:
